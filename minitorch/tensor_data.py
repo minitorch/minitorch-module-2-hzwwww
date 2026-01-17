@@ -90,7 +90,14 @@ def broadcast_index(
         None
     """
     # TODO: Implement for Task 2.2.
-    raise NotImplementedError("Need to implement for Task 2.2")
+    
+    """boradcast之后的tensor形状更大，但是底层数据用的还是小tensor
+    dim不存在，直接忽略，(3, 2) of (2) => (i, j) of (j)
+    dim=1，直接返回0，(3, 2, 4) of (2, 1) => (i, j, k) => (j, 0)
+    dim相等，直接使用原始index
+    """
+    for i in range(len(shape)):
+        out_index[i] = 0 if shape[i] == 1 else big_index[len(big_shape)-len(shape)+1]
 
 
 def shape_broadcast(shape1: UserShape, shape2: UserShape) -> UserShape:
@@ -108,7 +115,41 @@ def shape_broadcast(shape1: UserShape, shape2: UserShape) -> UserShape:
         IndexingError : if cannot broadcast
     """
     # TODO: Implement for Task 2.2.
-    raise NotImplementedError("Need to implement for Task 2.2")
+    
+    """返回一个shape，保证与shape1和shape2符合broadcast原则
+    原则：从右往左匹配shape1和shape2的每个dim，dim必须相等，或者为1，或者不存在
+    举例：
+        维度为1, a，则让dim=1的沿该维度复制a遍，[1,2,3] + [1] => [1,2,3] + [1,1,1]
+        维度为0, a，则让dim=0的将前一个维度的数据延该维度复制a遍，[[1,2,3], [4,5,6]] + [[7,8,9]] => [[1,2,3], [4,5,6]] + [[7,8,9], [7,8,9]]
+    """
+    newShape = []
+    i, j = len(shape1)-1, len(shape2)-1
+    while i>=0 and j >=0:
+        dim1 = shape1[i]
+        dim2 = shape2[j]
+        
+        if dim1 == dim2:
+            newShape.append(dim1)
+        elif dim1 == 1:
+            newShape.append(dim2)
+        elif dim2 == 1:
+            newShape.append(dim1)
+        else:
+            raise IndexingError(f'cant union {shape1} and {shape2}')
+        
+        i-=1
+        j-=1
+        
+    # 填充左侧多余的维度
+    while i >= 0:
+        newShape.append(shape1[i])
+        i-=1
+    while j >= 0:
+        newShape.append(shape2[j])
+        j-=1
+    
+    return tuple(reversed(newShape))
+    
 
 
 def strides_from_shape(shape: UserShape) -> UserStrides:
