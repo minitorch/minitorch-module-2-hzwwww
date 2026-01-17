@@ -44,7 +44,11 @@ def index_to_position(index: Index, strides: Strides) -> int:
     """
 
     # TODO: Implement for Task 2.1.
-    raise NotImplementedError("Need to implement for Task 2.1")
+    idx = 0
+    for i in range(len(index)):
+        idx += index[i] * strides[i]
+    
+    return idx
 
 
 def to_index(ordinal: int, shape: Shape, out_index: OutIndex) -> None:
@@ -60,8 +64,10 @@ def to_index(ordinal: int, shape: Shape, out_index: OutIndex) -> None:
         out_index : return index corresponding to position.
 
     """
-    # TODO: Implement for Task 2.1.
-    raise NotImplementedError("Need to implement for Task 2.1")
+    strides = strides_from_shape(shape)
+    for i in range(len(shape)):
+        out_index[i] = ordinal // strides[i]
+        ordinal %= strides[i]
 
 
 def broadcast_index(
@@ -106,12 +112,19 @@ def shape_broadcast(shape1: UserShape, shape2: UserShape) -> UserShape:
 
 
 def strides_from_shape(shape: UserShape) -> UserStrides:
-    layout = [1]
-    offset = 1
-    for s in reversed(shape):
-        layout.append(s * offset)
-        offset = s * offset
-    return tuple(reversed(layout[:-1]))
+    # layout = [1]
+    # offset = 1
+    # for s in reversed(shape):
+    #     layout.append(s * offset)
+    #     offset = s * offset
+    # return tuple(reversed(layout[:-1]))
+    # （3,4,5,1）
+    stride = 1
+    result = []
+    for dim in reversed(shape):
+        result.append(stride)
+        stride *= dim
+    return tuple(reversed(result))
 
 
 class TensorData:
@@ -185,6 +198,7 @@ class TensorData:
             if ind < 0:
                 raise IndexingError(f"Negative indexing for {aindex} not supported.")
 
+        print('!!!!!!!!shape', self.shape)
         # Call fast indexing.
         return index_to_position(array(index), self._strides)
 
@@ -223,7 +237,25 @@ class TensorData:
         ), f"Must give a position to each dimension. Shape: {self.shape} Order: {order}"
 
         # TODO: Implement for Task 2.1.
-        raise NotImplementedError("Need to implement for Task 2.1")
+        """
+        a[i, j] = a.permute(1, 0)[j, i]        
+        
+        examples:
+            shape(3, 4),stride(4, 1),y(i, j) = (4i+j)
+            shape(4, 3),stride(a, b),y(j, i) = (aj+bi) = (4i+j) => a=1,b=4 
+            shape(3, 4, 5),stride(20, 5, 1), y(i, j, k) = (20i+5j+k)
+            shape(4, 5, 3),stride(a, b,  c), y(j, k, i) = (aj+bk+ci) = (20i+5j+k) => a=5,b=1,c=20
+            
+        summary:
+            permute(1, 2, 0)
+                shape(i, j, k) => shape(j, k, i)
+                stride(a, b, c) => stride(b, c, a)
+        """
+        
+        shape = [self.shape[i] for i in order]
+        strides = [self.strides[i] for i in order]
+        
+        return TensorData(self._storage, tuple(shape), tuple(strides))
 
     def to_string(self) -> str:
         s = ""
