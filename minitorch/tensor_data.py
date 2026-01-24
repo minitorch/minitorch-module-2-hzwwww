@@ -97,7 +97,7 @@ def broadcast_index(
     dim相等，直接使用原始index
     """
     for i in range(len(shape)):
-        out_index[i] = 0 if shape[i] == 1 else big_index[len(big_shape)-len(shape)+1]
+        out_index[i] = 0 if shape[i] == 1 else big_index[len(big_shape)-len(shape)+i]
 
 
 def shape_broadcast(shape1: UserShape, shape2: UserShape) -> UserShape:

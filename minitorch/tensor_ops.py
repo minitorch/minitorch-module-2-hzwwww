@@ -269,7 +269,24 @@ def tensor_map(fn: Callable[[float], float]) -> Any:
         in_strides: Strides,
     ) -> None:
         # TODO: Implement for Task 2.3.
-        raise NotImplementedError("Need to implement for Task 2.3")
+        """
+        out.shape = (3,4,5), in.shape = (4,5), means copy (4,5) three times
+        
+        1. 获取out所有index
+        2. 将out_index 转为 in_index 访问 in
+        3. 将f(in)写入out
+        
+        通用步骤：遍历big tensor底层数组，底层数组index -> 多维index -> 转为small tensor -> 底层数组index -> fn(small tensor value) -> 写入out[index_to_pos(index)] 
+        """
+        out_index = np.zeros(len(out_shape), dtype=int)
+        in_index = np.zeros(len(in_shape), dtype=int)
+        for i in range(len(out)): # 遍历big tensor
+            to_index(i, out_shape, out_index) # 将一维index转为多维index
+            broadcast_index(out_index, out_shape, in_shape, in_index)  # 将多维index转为广播前的多维index
+            
+            x = in_storage[index_to_position(in_index, in_strides)]  # 获取广播前的数据
+            index = index_to_position(out_index, out_strides) # 将index转为一维index，注意这里不能直接用i代替，因为out可能不连续
+            out[index] = fn(x)  # 写入out
 
     return _map
 
@@ -319,8 +336,18 @@ def tensor_zip(fn: Callable[[float, float], float]) -> Any:
         b_strides: Strides,
     ) -> None:
         # TODO: Implement for Task 2.3.
-        raise NotImplementedError("Need to implement for Task 2.3")
-
+        out_index = np.zeros(len(out_shape), dtype=int)
+        a_index = np.zeros(len(a_shape), dtype=int)
+        b_index = np.zeros(len(b_shape), dtype=int)
+        for i in range(len(out)):
+            to_index(i, out_shape, out_index)
+            broadcast_index(out_index, out_shape, a_shape, a_index)
+            broadcast_index(out_index, out_shape, b_shape, b_index)
+            a_value = a_storage[index_to_position(a_index, a_strides)]
+            b_value = b_storage[index_to_position(b_index, b_strides)]
+            index = index_to_position(out_index, out_strides)
+            out[index] = fn(a_value, b_value)
+        
     return _zip
 
 
@@ -355,8 +382,17 @@ def tensor_reduce(fn: Callable[[float, float], float]) -> Any:
         reduce_dim: int,
     ) -> None:
         # TODO: Implement for Task 2.3.
-        raise NotImplementedError("Need to implement for Task 2.3")
+        # a_shape=(2,3,4), dim=1, then out_shape=(2,1,4)
+        out_index = np.zeros(len(out_shape), dtype=int)
+        a_index = np.zeros(len(a_shape), dtype=int)
+        for i in range(len(a_storage)):
+            to_index(i, a_shape, a_index)
+            a_value = a_storage[index_to_position(a_index, a_strides)]
 
+            broadcast_index(a_index, a_shape, out_shape, out_index)
+            index = index_to_position(out_index, out_strides)
+            out[index] = fn(out[index], a_value)
+        
     return _reduce
 
 
