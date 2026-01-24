@@ -100,15 +100,14 @@ class Mul(Function):
     @staticmethod
     def forward(ctx: Context, a: Tensor, b: Tensor) -> Tensor:
         # TODO: Implement for Task 2.3.
-        ctx.save_for_backward((a, b))
+        ctx.save_for_backward(a, b)
         return a.f.mul_zip(a, b)
 
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, Tensor]:
         # TODO: Implement for Task 2.4.
-        raise NotImplementedError("Need to implement for Task 2.4")
-        # (a, b) = ctx.saved_values
-        # return b*grad_output, a*grad_output
+        (a, b) = ctx.saved_values
+        return grad_output.f.mul_zip(b, grad_output), grad_output.f.mul_zip(a, grad_output)
 
 class Sigmoid(Function):
     @staticmethod
@@ -121,9 +120,14 @@ class Sigmoid(Function):
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tensor:
         # TODO: Implement for Task 2.4.
-        raise NotImplementedError("Need to implement for Task 2.4")
-        # forward_res = ctx.saved_values
-        # return grad_output * forward_res * (1 - forward_res)
+        (forward_res,) = ctx.saved_values
+        return grad_output.f.mul_zip(
+            grad_output, 
+            grad_output.f.mul_zip(
+                forward_res,
+                1+grad_output.f.neg_map(forward_res)
+            )
+        )
 
 
 class ReLU(Function):
@@ -136,7 +140,8 @@ class ReLU(Function):
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tensor:
         # TODO: Implement for Task 2.4.
-        raise NotImplementedError("Need to implement for Task 2.4")
+        (t1,) = ctx.saved_values
+        return grad_output.f.relu_back_zip(t1, grad_output)
 
 
 class Log(Function):
@@ -149,7 +154,8 @@ class Log(Function):
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tensor:
         # TODO: Implement for Task 2.4.
-        raise NotImplementedError("Need to implement for Task 2.4")
+        (t1,) = ctx.saved_values
+        return grad_output.f.log_back_zip(t1, grad_output)
 
 
 class Exp(Function):
@@ -163,7 +169,8 @@ class Exp(Function):
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tensor:
         # TODO: Implement for Task 2.4.
-        raise NotImplementedError("Need to implement for Task 2.4")
+        (forward_res,) = ctx.saved_values
+        return grad_output.f.mul_zip(forward_res, grad_output)
 
 
 class Sum(Function):
@@ -196,7 +203,8 @@ class LT(Function):
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, Tensor]:
         # TODO: Implement for Task 2.4.
-        raise NotImplementedError("Need to implement for Task 2.4")
+        zero_grad = grad_output.zeros(grad_output.shape)
+        return zero_grad, zero_grad
 
 
 class EQ(Function):
@@ -208,7 +216,8 @@ class EQ(Function):
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, Tensor]:
         # TODO: Implement for Task 2.4.
-        raise NotImplementedError("Need to implement for Task 2.4")
+        zero_grad = grad_output.zeros(grad_output.shape)
+        return zero_grad, zero_grad
 
 
 class IsClose(Function):
@@ -222,13 +231,27 @@ class Permute(Function):
     @staticmethod
     def forward(ctx: Context, a: Tensor, order: Tensor) -> Tensor:
         # TODO: Implement for Task 2.3.
-        return a.permute(tuple(order._tensor._storage))
+        int_order = [int(x) for x in order._tensor._storage]
+        ctx.save_for_backward(int_order)
+        return a._new(a._tensor.permute(*int_order))
 
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, float]:
         # TODO: Implement for Task 2.4.
-        raise NotImplementedError("Need to implement for Task 2.4")
-
+        """还原到permute之前的状态
+        permute(1,2,0)
+        0 -> 1
+        1 -> 2
+        2 -> 0
+        unpermute
+        1 -> 0
+        2 -> 1
+        0 -> 2
+        """
+        (new_order,) = ctx.saved_values
+        orig_order_map = {v: i for i, v in enumerate(new_order)}
+        orig_order = [orig_order_map[i] for i in range(len(new_order))]
+        return grad_output._new(grad_output._tensor.permute(*orig_order)), 0.0
 
 class View(Function):
     @staticmethod

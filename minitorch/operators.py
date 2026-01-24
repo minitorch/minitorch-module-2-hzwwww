@@ -43,18 +43,18 @@ def add(a: float, b: float) -> float:
 def neg(a: float) -> float:
     return -a
 
-def lt(a: float, b: float) -> bool:
-    return a<b
+def lt(a: float, b: float) -> float:
+    return 1.0 if a<b else 0.0
 
-def eq(a: float, b: float) -> bool:
-    return a==b
+def eq(a: float, b: float) -> float:
+    return 1.0 if a==b else 0.0
 
 def max(a: float, b: float) -> float:
     if a > b:
         return a
     return b
 
-def is_close(a: float, b: float) -> bool:
+def is_close(a: float, b: float) -> float:
     """
     pytorch实现：|a-b| <= rtol * |b| + atol
     相对容差：适用于较大数值的比较，例如比较1000和1000.001，允许的误差是1000 × 0.00001 = 0.01
@@ -63,7 +63,7 @@ def is_close(a: float, b: float) -> bool:
     atol = 1e-08
     """
     
-    return abs(a-b) <= 1e-2
+    return 1.0 if abs(a-b) <= 1e-2 else 0.0
 
 def sigmoid(a: float) -> float:
     """

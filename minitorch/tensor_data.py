@@ -239,7 +239,6 @@ class TensorData:
             if ind < 0:
                 raise IndexingError(f"Negative indexing for {aindex} not supported.")
 
-        print('!!!!!!!!shape', self.shape)
         # Call fast indexing.
         return index_to_position(array(index), self._strides)
 
