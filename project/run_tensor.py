@@ -3,6 +3,12 @@ Be sure you have minitorch installed in you Virtual Env.
 >>> pip install -Ue .
 """
 
+import os
+import sys
+
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(parent_dir)
+
 import minitorch
 
 
@@ -22,7 +28,9 @@ class Network(minitorch.Module):
 
     def forward(self, x):
         # TODO: Implement for Task 2.5.
-        raise NotImplementedError("Need to implement for Task 2.5")
+        x = self.layer1.forward(x).relu()
+        x = self.layer2.forward(x).relu()
+        return self.layer3.forward(x).sigmoid()
 
 
 class Linear(minitorch.Module):
@@ -34,8 +42,16 @@ class Linear(minitorch.Module):
 
     def forward(self, x):
         # TODO: Implement for Task 2.5.
-        raise NotImplementedError("Need to implement for Task 2.5")
+        """Manual implementation for matrix multiplication
+        x @ self.weights.value + self.bias.value"""
+        x_broadcasted = x.view(*x.shape, 1)  # (batch_size, in_size, 1)
+        weights_broadcasted = self.weights.value.view(1, *self.weights.value.shape) # (1, in_size, out_size)
+        v_1 = x_broadcasted * weights_broadcasted # (batch_size, in_size, out_size)
+        
+        v_2 = v_1.sum(dim=1).contiguous().view(x.shape[0], self.out_size) # (batch_size, out_size)
 
+        # Adding the (reshaped) bias. -> (batch_size, out_size)
+        return v_2 + self.bias.value.view(1, self.out_size)
 
 def default_log_fn(epoch, total_loss, correct, losses):
     print("Epoch ", epoch, " loss ", total_loss, "correct", correct)
